@@ -129,4 +129,71 @@ mod erc20 {
             Ok(())
         }
     }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use ink_lang as ink;
+
+        #[ink::test]
+        fn new_works() {
+            let contract = Erc20::new(100);
+            assert_eq!(contract.total_supply(), 100);
+        }
+
+        #[ink::test]
+        fn balance_works() {
+            let contract = Erc20::new(100);
+            assert_eq!(contract.total_supply(), 100);
+            assert_eq!(contract.balance_of(AccountId::from([0x1; 32])), 100);
+        }
+
+        #[ink::test]
+        fn transfer_works() {
+            let mut contract = Erc20::new(100);
+            assert_eq!(contract.balance_of(AccountId::from([0x1; 32])), 100);
+            assert_eq!(contract.transfer(AccountId::from([0x0; 32]), 10), Ok(()));
+            assert_eq!(contract.balance_of(AccountId::from([0x0; 32])), 10);
+            assert_eq!(
+                contract.transfer(AccountId::from([0x0; 32]), 91),
+                Err(Error::InsufficientBalance)
+            );
+        }
+
+        #[ink::test]
+        fn transfer_from_works() {
+            let mut contract = Erc20::new(100);
+            assert_eq!(contract.balance_of(AccountId::from([0x1; 32])), 100);
+            assert_eq!(contract.approve(AccountId::from([0x1; 32]), 20), Ok(()));
+            assert_eq!(
+                contract.transfer_from(AccountId::from([0x1; 32]), AccountId::from([0x0; 32]), 30),
+                Err(Error::InsufficientApproval)
+            );
+            assert_eq!(
+                contract.transfer_from(AccountId::from([0x1; 32]), AccountId::from([0x0; 32]), 10),
+                Ok(())
+            );
+            assert_eq!(contract.balance_of(AccountId::from([0x0; 32])), 10);
+        }
+
+        #[ink::test]
+        fn allowances_works() {
+            let mut contract = Erc20::new(100);
+            assert_eq!(contract.balance_of(AccountId::from([0x1; 32])), 100);
+            assert_eq!(contract.approve(AccountId::from([0x1; 32]), 200), Ok(()));
+            assert_eq!(contract.allowance(AccountId::from([0x1; 32]), AccountId::from([0x1; 32])), 200);
+
+            assert_eq!(contract.transfer_from(AccountId::from([0x1; 32]), AccountId::from([0x0; 32]), 10), Ok(()));
+            assert_eq!(contract.balance_of(AccountId::from([0x0; 32])), 10);
+            assert_eq!(contract.allowance(AccountId::from([0x1; 32]), AccountId::from([0x1; 32])), 190);
+
+            assert_eq!(contract.transfer_from(AccountId::from([0x1; 32]), AccountId::from([0x0; 32]), 100), Err(Error::InsufficientBalance));
+            assert_eq!(contract.balance_of(AccountId::from([0x0; 32])), 10);
+            assert_eq!(contract.allowance(AccountId::from([0x1; 32]), AccountId::from([0x1; 32])), 190);
+
+            assert_eq!(contract.transfer_from(AccountId::from([0x1; 32]), AccountId::from([0x0; 32]), 500), Err(Error::InsufficientApproval));
+            assert_eq!(contract.balance_of(AccountId::from([0x0; 32])), 10);
+            assert_eq!(contract.allowance(AccountId::from([0x1; 32]), AccountId::from([0x1; 32])), 190);
+        }
+    }
 }
